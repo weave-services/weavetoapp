@@ -18,11 +18,32 @@ if (!process.env.OPENAI_API_KEY) {
 }
 
 const instarray = [...process.argv];
-console.trace();
 instarray.shift();
 instarray.shift();
 
-const transformationInstruction = instarray.join(' ');
+let transformationInstruction = instarray.join(' ');
+
+// Check if the '-f' flag is provided
+let fileInputFlagIndex = instarray.indexOf('-f');
+let inputFile = null;
+
+if (fileInputFlagIndex !== -1) {
+    inputFile = instarray[fileInputFlagIndex + 1];
+    if (inputFile) {
+        try {
+            // Read the content of the specified file
+            const fileContent = fs.readFileSync(inputFile, 'utf8');
+            transformationInstruction += `\n\n${fileContent}`; // Append file content to the instructions
+            instarray.splice(fileInputFlagIndex, 2); // Remove the '-f' flag and file path from the arguments
+        } catch (err) {
+            console.error(`Error reading the file at ${inputFile}:`, err);
+            process.exit();
+        }
+    } else {
+        console.error("No file specified after '-f' flag.");
+        process.exit();
+    }
+}
 
 const systemPrompt = `perform the following changes: ${transformationInstruction}\nin the following application. Include all the modified or added files complete without comments, Only reply in code in this syntax #^filename&^filecontents#^filename&^filecontents`;
 
